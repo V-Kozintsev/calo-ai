@@ -88,16 +88,28 @@ type AnalyzerProps = {
   photoData: string | null;
 };
 
+type Meal = {
+  id: string;
+  name: string;
+  weight: number;
+  calories: number;
+  createdAt: string;
+};
+
 function AnalyzerBlock({ onTakePhoto, photoData }: AnalyzerProps) {
   const [result, setResult] = useState<{
     name: string;
-    weight: number; // граммы
-    calories: number; // ккал за весь объём
+    weight: number;
+    calories: number;
   } | null>(null);
 
   const [editableName, setEditableName] = useState("");
   const [editableWeight, setEditableWeight] = useState("");
   const [caloriesPer100g, setCaloriesPer100g] = useState("");
+
+  const [meals, setMeals] = useState<Meal[]>([]);
+
+  const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
 
   const mockRecognize = () => {
     const samples = [
@@ -115,8 +127,8 @@ function AnalyzerBlock({ onTakePhoto, photoData }: AnalyzerProps) {
   };
 
   const handleClick = () => {
-    onTakePhoto(); // позже тут будет реальное фото
-    mockRecognize(); // пока просто рандом
+    onTakePhoto();
+    mockRecognize();
   };
 
   const handleRecalculate = () => {
@@ -131,6 +143,24 @@ function AnalyzerBlock({ onTakePhoto, photoData }: AnalyzerProps) {
       weight: w,
       calories: totalCalories,
     });
+  };
+
+  const handleAddMeal = () => {
+    if (!result) return;
+
+    const newMeal: Meal = {
+      id: crypto.randomUUID(),
+      name: result.name,
+      weight: result.weight,
+      calories: result.calories,
+      createdAt: new Date().toISOString(),
+    };
+
+    setMeals((prev) => [newMeal, ...prev]);
+  };
+
+  const handleClearMeals = () => {
+    setMeals([]);
   };
 
   return (
@@ -149,7 +179,7 @@ function AnalyzerBlock({ onTakePhoto, photoData }: AnalyzerProps) {
       )}
 
       {result && (
-        <div className="mt-2 w-72 border border-slate-700 rounded-lg p-3 bg-slate-800 space-y-2">
+        <div className="mt-2 w-80 border border-slate-700 rounded-lg p-3 bg-slate-800 space-y-2">
           <p className="text-sm text-slate-300">
             Распознанное блюдо (можно исправить):
           </p>
@@ -201,6 +231,47 @@ function AnalyzerBlock({ onTakePhoto, photoData }: AnalyzerProps) {
             <p>Вес: {result.weight} г</p>
             <p>Калорийность: {result.calories} ккал</p>
           </div>
+
+          <button
+            onClick={handleAddMeal}
+            className="w-full mt-2 px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-600 text-sm transition"
+          >
+            Добавить в дневник за сегодня
+          </button>
+        </div>
+      )}
+
+      {meals.length > 0 && (
+        <div className="mt-3 w-80 border border-slate-700 rounded-lg p-3 bg-slate-800 space-y-2 text-sm">
+          <div className="flex justify-between items-center">
+            <p className="font-semibold">Сегодня съел:</p>
+            <button
+              onClick={handleClearMeals}
+              className="text-xs text-red-300 hover:text-red-400"
+            >
+              Очистить
+            </button>
+          </div>
+
+          <ul className="space-y-1 max-h-40 overflow-auto pr-1">
+            {meals.map((meal) => (
+              <li
+                key={meal.id}
+                className="flex justify-between gap-2 border-b border-slate-700/60 pb-1 last:border-b-0"
+              >
+                <div>
+                  <p className="font-medium">{meal.name}</p>
+                  <p className="text-xs text-slate-400">
+                    {meal.weight} г • {meal.calories} ккал
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-1 font-semibold">
+            Итого за сегодня: {totalCalories} ккал
+          </p>
         </div>
       )}
     </div>
